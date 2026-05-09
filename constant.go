@@ -1,0 +1,17 @@
+package go_zpay
+
+const (
+	SIGN_TYPE_SHA512 = "SHA512"
+	VERSION_1_0      = "1.0"
+
+	// Pay-In Status
+	PAY_STATUS_PENDING = 0
+	PAY_STATUS_SUCCESS = 1
+	PAY_STATUS_FAILED  = 2
+
+	// Pay-Out Status
+	STATUS_PENDING    = 0
+	STATUS_SUCCESS    = 1
+	STATUS_FAILED     = 2
+	STATUS_PROCESSING = 3
+)
