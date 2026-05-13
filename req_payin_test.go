@@ -1,26 +1,38 @@
-package go_zpay
+package rivo
 
 import (
-	"fmt"
+	"os"
 	"testing"
 )
 
-func TestCreatePayInOrder(t *testing.T) {
-	logger := &MockLogger{}
-	config := &RivoConfig{
-		MchId:             MERCHANT_ID,
-		SecretKey:         SECRET_KEY,
-		PayinUrl:          PAYIN_URL,
-		PayoutUrl:         PAYOUT_URL,
-		PayinCallbackUrl:  PAYIN_CALLBACK_URL,
-		PayoutCallbackUrl: PAYOUT_CALLBACK_URL,
-		ReturnUrl:         RETURN_URL,
-	}
-	client := NewClient(logger, config)
-	client.SetDebugMode(true)
+type mockLogger struct{}
 
-	req := &PayInRequest{
-		TradeNo:       "PAY202604150006",
+func (m *mockLogger) Debugf(string, ...interface{}) {}
+func (m *mockLogger) Infof(string, ...interface{})  {}
+func (m *mockLogger) Warnf(string, ...interface{})  {}
+func (m *mockLogger) Errorf(string, ...interface{}) {}
+
+func newTestClient() *Client {
+	cfg := &RivoConfig{
+		MchId:             "8822871771",
+		SecretKey:         "50c7da45c3414e788f684e8e085b30f2",
+		PayinCallbackUrl:  "https://api-test.logtec.dev/fapi/payment/psp/public/rivo/deposit/back",
+		PayoutCallbackUrl: "https://api-test.logtec.dev/fapi/payment/psp/public/rivo/withdraw/back",
+		ReturnUrl:         "https://cpt.supermarkets.com",
+	}
+	return NewClient(&mockLogger{}, cfg)
+}
+
+func TestCreatePayInOrder_Integration(t *testing.T) {
+	if os.Getenv("RIVO_RUN_INTEGRATION") != "1" {
+		t.Skip("set RIVO_RUN_INTEGRATION=1 to run real gateway integration tests")
+	}
+
+	client := newTestClient()
+	client.SetDebugModel(true)
+
+	_, err := client.CreatePayInOrder(PayInRequest{
+		TradeNo:       "PAY202605130001",
 		Amount:        1001.00,
 		Currency:      "VND",
 		PaymentMethod: "01",
@@ -31,20 +43,8 @@ func TestCreatePayInOrder(t *testing.T) {
 		Email:         "jane@example.com",
 		City:          "Ho Chi Minh",
 		Address:       "District 1",
-	}
-
-	// This will fail because it's a real API call, but we can check the signature generation
-	resp, err := client.CreatePayInOrder(req)
+	})
 	if err != nil {
-		fmt.Printf("Expected error or result: %v\n", err)
-	} else {
-		fmt.Printf("Response: %+v\n", resp)
+		t.Fatalf("CreatePayInOrder failed: %v", err)
 	}
 }
-
-type MockLogger struct{}
-
-func (m *MockLogger) Debugf(format string, args ...interface{}) { fmt.Printf(format+"\n", args...) }
-func (m *MockLogger) Infof(format string, args ...interface{})  { fmt.Printf(format+"\n", args...) }
-func (m *MockLogger) Warnf(format string, args ...interface{})  { fmt.Printf(format+"\n", args...) }
-func (m *MockLogger) Errorf(format string, args ...interface{}) { fmt.Printf(format+"\n", args...) }

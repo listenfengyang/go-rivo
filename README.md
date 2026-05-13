@@ -1,39 +1,74 @@
 # go-rivo
-Rivo Global Payment SDK for Go.
 
-## Features
-- Pay-In (Collection) integration.
-- Pay-Out (Disbursement) integration.
-- Order Query for both Pay-In and Pay-Out.
-- SHA-512 Signature generation and verification.
-- Async Callback parsing and validation.
+Rivo Global payment SDK for Go.
 
 ## Installation
+
 ```bash
-go get github.com/listenfengyang/go-zpay
+go get github.com/listenfengyang/go-rivo
 ```
 
-## Usage
+If you migrate this repo into another organization (for example `github.com/asaka1234/go-rivo`), update `go.mod` `module` path before publishing.
 
-### Initialize Client
+## Features
+
+- Pay-In order create and query
+- Pay-Out order create and query
+- Callback signature verification
+- SHA512 signing utility
+
+## Quick Start
+
 ```go
-config := &go_rivo.RivoConfig{
-    MchId:     "your_mch_id",
-    SecretKey: "your_secret_key",
-    BaseUrl:   go_rivo.BASE_URL_TEST,
+package main
+
+import (
+	"log"
+
+	rivo "github.com/listenfengyang/go-rivo"
+)
+
+type noopLogger struct{}
+
+func (n *noopLogger) Debugf(string, ...interface{}) {}
+func (n *noopLogger) Infof(string, ...interface{})  {}
+func (n *noopLogger) Warnf(string, ...interface{})  {}
+func (n *noopLogger) Errorf(string, ...interface{}) {}
+
+func main() {
+	cfg := &rivo.RivoInitParams{
+		MchId:             "your_mch_id",
+		SecretKey:         "your_secret_key",
+		PayinCallbackUrl:  "https://your-domain.com/payment/psp/public/rivo/deposit/back",
+		PayoutCallbackUrl: "https://your-domain.com/payment/psp/public/rivo/withdraw/back",
+		ReturnUrl:         "https://your-domain.com/cashier/return",
+	}
+	client := rivo.NewClient(&noopLogger{}, cfg)
+
+	resp, err := client.CreatePayInOrder(rivo.PayInRequest{
+		TradeNo:       "PAY202605130001",
+		Amount:        1000,
+		Currency:      "VND",
+		PaymentMethod: "01",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("cashier url: %s", resp.CashierUrl)
 }
-client := go_rivo.NewClient(logger, config)
 ```
 
-### Create Pay-In Order
-```go
-req := &go_rivo.PayInRequest{
-    TradeNo:       "order_123",
-    Amount:        decimal.NewFromFloat(100.0),
-    Currency:      "VND",
-    PaymentMethod: "01",
-    OrderDate:     time.Now().UnixNano() / 1e6,
-    // ... other fields
-}
-resp, err := client.CreatePayInOrder(req)
-```
+## Notes
+
+- Default endpoints:
+  - `https://api.toprivo.com/gateway/pay/first/order/create`
+  - `https://api.toprivo.com/gateway/payout/first/order/create`
+- Query endpoints from official docs:
+  - `GET /gateway/pay/first/order/query`
+  - `GET /gateway/payout/first/order/query` (uses `mchOrderId` / `transNo`)
+- Anti-replay rule:
+  - `version=1.1`: `timestamp` and `nonce` are required (SDK auto-fills if omitted).
+  - `version=1.0`: `timestamp` and `nonce` must be both provided or both omitted.
+- Callback handling: merchant side should return plain text `ok` after successful processing.
+- Constants `MERCHANT_ID` / `SECRET_KEY` / callback URLs are example placeholders only.

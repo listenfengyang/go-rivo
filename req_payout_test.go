@@ -1,26 +1,20 @@
-package go_zpay
+package rivo
 
 import (
-	"fmt"
+	"os"
 	"testing"
 )
 
-func TestCreatePayOutOrder(t *testing.T) {
-	logger := &MockLogger{}
-	config := &RivoConfig{
-		MchId:             MERCHANT_ID,
-		SecretKey:         SECRET_KEY,
-		PayinUrl:          PAYIN_URL,
-		PayoutUrl:         PAYOUT_URL,
-		PayinCallbackUrl:  PAYIN_CALLBACK_URL,
-		PayoutCallbackUrl: PAYOUT_CALLBACK_URL,
-		ReturnUrl:         RETURN_URL,
+func TestCreatePayOutOrder_Integration(t *testing.T) {
+	if os.Getenv("RIVO_RUN_INTEGRATION") != "1" {
+		t.Skip("set RIVO_RUN_INTEGRATION=1 to run real gateway integration tests")
 	}
-	client := NewClient(logger, config)
-	client.SetDebugMode(true)
 
-	req := &PayOutRequest{
-		TradeNo:          "PO202604150001",
+	client := newTestClient()
+	client.SetDebugModel(true)
+
+	_, err := client.CreatePayOutOrder(PayOutRequest{
+		TradeNo:          "PO202605130001",
 		Amount:           1000.00,
 		Currency:         "VND",
 		AccType:          "01",
@@ -29,13 +23,8 @@ func TestCreatePayOutOrder(t *testing.T) {
 		AccountNoUnified: "1234567890",
 		BankCode:         "VCB",
 		BankName:         "Vietcombank",
-	}
-
-	// This will fail because it's a real API call, but we can check the signature generation
-	resp, err := client.CreatePayOutOrder(req)
+	})
 	if err != nil {
-		fmt.Printf("Expected error or result: %v\n", err)
-	} else {
-		fmt.Printf("Response: %+v\n", resp)
+		t.Fatalf("CreatePayOutOrder failed: %v", err)
 	}
 }

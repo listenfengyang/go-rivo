@@ -1,119 +1,139 @@
-package go_zpay
+package rivo
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
-
-	"github.com/listenfengyang/go-zpay/utils"
-	"github.com/mitchellh/mapstructure"
 )
 
-// CreatePayInOrder 创建收款订单 (Pay-In)
-func (cli *Client) CreatePayInOrder(req *PayInRequest) (*PayInResponseData, error) {
-	req.MchId = cli.Config.MchId
-	req.SignType = SIGN_TYPE_SHA512
-	req.Version = VERSION_1_0
-	req.NotifyUrl = cli.Config.PayinCallbackUrl
-	req.ReturnUrl = cli.Config.ReturnUrl
+// CreatePayInOrder creates a pay-in order.
+func (cli *Client) CreatePayInOrder(req PayInRequest) (*PayInResponseData, error) {
+	if strings.TrimSpace(req.TradeNo) == "" {
+		return nil, fmt.Errorf("tradeNo must not be blank")
+	}
+	if req.Amount <= 0 {
+		return nil, fmt.Errorf("amount must be greater than 0")
+	}
+	if strings.TrimSpace(req.Currency) == "" {
+		return nil, fmt.Errorf("currency must not be blank")
+	}
+	if strings.TrimSpace(req.PaymentMethod) == "" {
+		req.PaymentMethod = "01"
+	}
+	if req.OrderDate == 0 {
+		req.OrderDate = time.Now().UnixMilli()
+	}
 
-	// 生成签名
-	params := make(map[string]interface{})
-	if err := mapstructure.Decode(req, &params); err != nil {
+	req.MchId = cli.Params.MchId
+	req.SignType = SignTypeSHA512
+	if req.Version == "" {
+		req.Version = Version10
+	}
+	req.NotifyUrl = cli.Params.PayinCallbackUrl
+	req.ReturnUrl = cli.Params.ReturnUrl
+
+	if err := normalizeAntiReplay(req.Version, &req.Timestamp, &req.Nonce); err != nil {
 		return nil, err
 	}
-	fmt.Printf("params: %v\n req: %v\n", params, req)
 
-	req.Sign = utils.GenerateSign(params, cli.Config.SecretKey)
+	sign, err := signPayload(req, cli.Params.SecretKey)
+	if err != nil {
+		return nil, err
+	}
+	req.Sign = sign
 
 	var resp BaseResponse
-	_, err := cli.ryClient.R().
+	_, err = cli.ryClient.R().
 		SetHeaders(getHeaders()).
 		SetBody(req).
 		SetResult(&resp).
 		Post(cli.Config.PayinUrl)
-
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.Code != "200" {
-		return nil, fmt.Errorf("api error: %s - %s", resp.Code, resp.Msg)
+		return nil, fmt.Errorf("rivo payin failed: code=%s msg=%s", resp.Code, resp.Msg)
 	}
 
 	var data PayInResponseData
-	if err := mapstructure.Decode(resp.Data, &data); err != nil {
-		return nil, err
+	if len(resp.Data) > 0 && string(resp.Data) != "null" {
+		if err = json.Unmarshal(resp.Data, &data); err != nil {
+			return nil, err
+		}
 	}
 
 	return &data, nil
 }
 
-// QueryPayInOrder 查询收款订单 (Pay-In Query)
-func (cli *Client) QueryPayInOrder(req *PayInQueryRequest) (*PayInQueryResponseData, error) {
-	req.MchId = cli.Config.MchId
-	req.Version = VERSION_1_0
-	if req.Timestamp == 0 {
-		req.Timestamp = time.Now().UnixNano() / 1e6
+// QueryPayInOrder queries a pay-in order.
+func (cli *Client) QueryPayInOrder(req PayInQueryRequest) (*PayInQueryResponseData, error) {
+	if req.TradeNo == "" && req.OutTradeNo == "" {
+		return nil, fmt.Errorf("tradeNo or outTradeNo must not be blank")
 	}
 
-	// 生成签名
-	params := make(map[string]interface{})
-	if err := mapstructure.Decode(req, &params); err != nil {
+	req.MchId = cli.Params.MchId
+	if req.Version == "" {
+		req.Version = Version10
+	}
+
+	if err := normalizeAntiReplay(req.Version, &req.Timestamp, &req.Nonce); err != nil {
 		return nil, err
 	}
-	req.Sign = utils.GenerateSign(params, cli.Config.SecretKey)
 
-	// GET 请求参数
-	queryParams := make(map[string]string)
-	for k, v := range params {
-		if v != nil {
-			queryParams[k] = fmt.Sprintf("%v", v)
-		}
+	sign, err := signPayload(req, cli.Params.SecretKey)
+	if err != nil {
+		return nil, err
+	}
+	req.Sign = sign
+
+	queryParams, err := structToSignData(req)
+	if err != nil {
+		return nil, err
 	}
 	queryParams["sign"] = req.Sign
 
 	var resp BaseResponse
-	_, err := cli.ryClient.R().
+	_, err = cli.ryClient.R().
 		SetQueryParams(queryParams).
 		SetResult(&resp).
-		Get(cli.Config.PayinUrl)
-
+		Get(cli.Params.payinQueryURL())
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.Code != "200" {
-		return nil, fmt.Errorf("api error: %s - %s", resp.Code, resp.Msg)
+		return nil, fmt.Errorf("rivo payin query failed: code=%s msg=%s", resp.Code, resp.Msg)
 	}
 
 	var data PayInQueryResponseData
-	if err := mapstructure.Decode(resp.Data, &data); err != nil {
-		return nil, err
+	if len(resp.Data) > 0 && string(resp.Data) != "null" {
+		if err = json.Unmarshal(resp.Data, &data); err != nil {
+			return nil, err
+		}
 	}
-
-	// 校验响应签名
-	dataParams := make(map[string]interface{})
-	if err := mapstructure.Decode(data, &dataParams); err != nil {
-		return nil, err
-	}
-	if !utils.VerifySign(dataParams, cli.Config.SecretKey, data.Sign) {
-		return nil, fmt.Errorf("response signature verification failed")
+	if data.Sign != "" {
+		ok, verifyErr := verifyPayloadSign(data, cli.Params.SecretKey, data.Sign)
+		if verifyErr != nil {
+			return nil, verifyErr
+		}
+		if !ok {
+			return nil, fmt.Errorf("rivo payin query response signature verification failed")
+		}
 	}
 
 	return &data, nil
 }
 
-// ParsePayInCallback 解析收款回调
+// ParsePayInCallback parses and verifies a pay-in callback.
 func (cli *Client) ParsePayInCallback(callback PayInCallback) (PayInCallback, error) {
-	// 校验签名
-	params := make(map[string]interface{})
-	if err := mapstructure.Decode(callback, &params); err != nil {
+	ok, err := verifyPayloadSign(callback, cli.Params.SecretKey, callback.Sign)
+	if err != nil {
 		return callback, err
 	}
-
-	if !utils.VerifySign(params, cli.Config.SecretKey, callback.Sign) {
-		return callback, fmt.Errorf("dp callback signature verification failed")
+	if !ok {
+		return callback, fmt.Errorf("rivo payin callback signature verification failed")
 	}
-
 	return callback, nil
 }

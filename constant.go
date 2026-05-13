@@ -1,17 +1,34 @@
-package go_zpay
+package rivo
 
 const (
-	SIGN_TYPE_SHA512 = "SHA512"
-	VERSION_1_0      = "1.0"
+	SignTypeSHA512 = "SHA512"
+	Version10      = "1.0"
+	Version11      = "1.1"
+
+	// Backward compatibility aliases.
+	SIGN_TYPE_SHA512 = SignTypeSHA512
+	VERSION_1_0      = Version10
+	VERSION_1_1      = Version11
 
 	// Pay-In Status
-	PAY_STATUS_PENDING = 0
-	PAY_STATUS_SUCCESS = 1
-	PAY_STATUS_FAILED  = 2
+	PayInStatusPending = 0
+	PayInStatusSuccess = 1
+	PayInStatusFailed  = 2
+
+	// Backward compatibility aliases.
+	PAY_STATUS_PENDING = PayInStatusPending
+	PAY_STATUS_SUCCESS = PayInStatusSuccess
+	PAY_STATUS_FAILED  = PayInStatusFailed
 
 	// Pay-Out Status
-	STATUS_PENDING    = 0
-	STATUS_SUCCESS    = 1
-	STATUS_FAILED     = 2
-	STATUS_PROCESSING = 3
+	PayOutStatusPending    = 0
+	PayOutStatusSuccess    = 1
+	PayOutStatusFailed     = 2
+	PayOutStatusProcessing = 3
+
+	// Backward compatibility aliases.
+	STATUS_PENDING    = PayOutStatusPending
+	STATUS_SUCCESS    = PayOutStatusSuccess
+	STATUS_FAILED     = PayOutStatusFailed
+	STATUS_PROCESSING = PayOutStatusProcessing
 )

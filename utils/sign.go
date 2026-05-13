@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/spf13/cast"
 )
 
 // GenerateSign generates SHA-512 signature based on Rivo's rules
@@ -22,7 +20,7 @@ func GenerateSign(params map[string]interface{}, key string) string {
 		if k == "sign" || v == nil {
 			continue
 		}
-		val := strings.TrimSpace(cast.ToString(v))
+		val := strings.TrimSpace(fmt.Sprint(v))
 		if val == "" {
 			continue
 		}
@@ -35,14 +33,12 @@ func GenerateSign(params map[string]interface{}, key string) string {
 	// 3. Concatenate key=value
 	var parts []string
 	for _, k := range keys {
-		parts = append(parts, fmt.Sprintf("%s=%v", k, cast.ToString(params[k])))
+		parts = append(parts, fmt.Sprintf("%s=%s", k, strings.TrimSpace(fmt.Sprint(params[k]))))
 	}
 	signStr := strings.Join(parts, "&")
 
 	// 4. Append merchant secret key
 	signStr = fmt.Sprintf("%s&key=%s", signStr, key)
-
-	fmt.Printf("signStr: %s\n\n", signStr)
 
 	// 5. SHA-512 hash
 	hash := sha512.New()
@@ -53,5 +49,5 @@ func GenerateSign(params map[string]interface{}, key string) string {
 // VerifySign verifies the signature of the data object
 func VerifySign(params map[string]interface{}, key string, signToVerify string) bool {
 	generatedSign := GenerateSign(params, key)
-	return strings.EqualFold(generatedSign, signToVerify)
+	return strings.EqualFold(generatedSign, strings.TrimSpace(signToVerify))
 }
