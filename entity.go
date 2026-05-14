@@ -180,7 +180,7 @@ type PayOutCallback struct {
 	Currency   string      `json:"currency"`
 	Status     int         `json:"status"`
 	OrderDate  int64       `json:"orderDate"`
-	PayTime    int64       `json:"payTime"`
-	ExtraData  string      `json:"extraData,omitempty"`
+	PayTime    int64       `json:"payTime,omitempty"`
+	ExtraData  StringValue `json:"extraData,omitempty"`
 	Sign       string      `json:"sign"`
 }
