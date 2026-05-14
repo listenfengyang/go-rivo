@@ -9,15 +9,15 @@ const (
 	DefaultPayOutQueryURL = "https://api.toprivo.com/gateway/payout/first/order/query"
 
 	// Example-only values for quick bootstrap (not production credentials).
-	MERCHANT_ID         = "your_mch_id"
-	SECRET_KEY          = "your_secret_key"
+	MERCHANT_ID         = "8822871771"
+	SECRET_KEY          = "50c7da45c3414e788f684e8e085b30f2"
 	PAYIN_URL           = DefaultPayInURL
 	PAYIN_QUERY_URL     = DefaultPayInQueryURL
 	PAYOUT_URL          = DefaultPayOutURL
 	PAYOUT_QUERY_URL    = DefaultPayOutQueryURL
-	PAYIN_CALLBACK_URL  = "https://your-domain.com/payment/psp/public/rivo/deposit/back"
-	PAYOUT_CALLBACK_URL = "https://your-domain.com/payment/psp/public/rivo/withdraw/back"
-	RETURN_URL          = "https://your-domain.com/cashier/return"
+	PAYIN_CALLBACK_URL  = "https://api-test.logtec.dev/fapi/cpti/payment/psp/public/rivo/deposit/back"
+	PAYOUT_CALLBACK_URL = "https://api-test.logtec.dev/fapi/cpti/payment/psp/public/rivo/withdraw/back"
+	RETURN_URL          = "https://cpt.supermarkets.com"
 )
 
 type RivoConfig struct {
