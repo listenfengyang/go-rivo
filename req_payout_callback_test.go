@@ -79,3 +79,22 @@ func TestPayOutCallback_UnmarshalObjectExtraData(t *testing.T) {
 		t.Fatal("extraData should keep object payload as signable string")
 	}
 }
+
+func TestParsePayOutCallback_InvalidSign(t *testing.T) {
+	client := newTestClient()
+
+	callback := PayOutCallback{
+		MchId:      "8822871771",
+		TradeNo:    "PO202604150004",
+		OutTradeNo: "PO2605092052970940983377923",
+		Amount:     StringValue("1000.00"),
+		Currency:   "VND",
+		Status:     1,
+		OrderDate:  1778301389000,
+		Sign:       "invalid-sign",
+	}
+
+	if _, err := client.ParsePayOutCallback(callback); err == nil {
+		t.Fatal("expected signature verification error for invalid sign")
+	}
+}
