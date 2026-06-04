@@ -59,7 +59,7 @@ func (cli *Client) CreatePayOutOrder(req PayOutRequest) (*PayOutResponseData, er
 		SetBody(req).
 		SetResult(&resp).
 		Post(cli.Config.PayoutUrl)
-	cli.logResty("withdraw", httpResp)
+	cli.logResty("payout", httpResp)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (cli *Client) QueryPayOutOrder(req PayOutQueryRequest) (*PayOutQueryRespons
 		SetQueryParams(queryParams).
 		SetResult(&resp).
 		Get(cli.Params.payoutQueryURL())
-	cli.logResty("withdraw#query", httpResp)
+	cli.logResty("payout#query", httpResp)
 	if err != nil {
 		return nil, err
 	}

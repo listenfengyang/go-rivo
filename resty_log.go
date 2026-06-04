@@ -12,10 +12,10 @@ func (cli *Client) logResty(action string, resp *resty.Response) {
 		return
 	}
 
-	restLog, err := json.Marshal(utils.GetRestyLog(resp))
+	prettyLog, err := json.MarshalIndent(utils.GetRestyLog(resp), "", "  ")
 	if err != nil {
-		cli.logger.Errorf("PSPResty#rivo#%s log marshal err:%s", action, err.Error())
+		cli.logger.Infof("PSPResty#rivo#%s marshal log failed: %v", action, err)
 		return
 	}
-	cli.logger.Infof("PSPResty#rivo#%s->%s", action, string(restLog))
+	cli.logger.Infof("PSPResty#rivo#%s:\n%s", action, prettyLog)
 }

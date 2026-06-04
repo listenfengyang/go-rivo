@@ -49,7 +49,7 @@ func (cli *Client) CreatePayInOrder(req PayInRequest) (*PayInResponseData, error
 		SetBody(req).
 		SetResult(&resp).
 		Post(cli.Config.PayinUrl)
-	cli.logResty("deposit", httpResp)
+	cli.logResty("payin", httpResp)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (cli *Client) QueryPayInOrder(req PayInQueryRequest) (*PayInQueryResponseDa
 		SetQueryParams(queryParams).
 		SetResult(&resp).
 		Get(cli.Params.payinQueryURL())
-	cli.logResty("deposit#query", httpResp)
+	cli.logResty("payin#query", httpResp)
 	if err != nil {
 		return nil, err
 	}
