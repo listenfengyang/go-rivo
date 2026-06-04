@@ -44,11 +44,12 @@ func (cli *Client) CreatePayInOrder(req PayInRequest) (*PayInResponseData, error
 	req.Sign = sign
 
 	var resp BaseResponse
-	_, err = cli.ryClient.R().
+	httpResp, err := cli.ryClient.R().
 		SetHeaders(getHeaders()).
 		SetBody(req).
 		SetResult(&resp).
 		Post(cli.Config.PayinUrl)
+	cli.logResty("deposit", httpResp)
 	if err != nil {
 		return nil, err
 	}
@@ -95,10 +96,11 @@ func (cli *Client) QueryPayInOrder(req PayInQueryRequest) (*PayInQueryResponseDa
 	queryParams["sign"] = req.Sign
 
 	var resp BaseResponse
-	_, err = cli.ryClient.R().
+	httpResp, err := cli.ryClient.R().
 		SetQueryParams(queryParams).
 		SetResult(&resp).
 		Get(cli.Params.payinQueryURL())
+	cli.logResty("deposit#query", httpResp)
 	if err != nil {
 		return nil, err
 	}

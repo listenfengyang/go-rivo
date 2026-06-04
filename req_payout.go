@@ -54,11 +54,12 @@ func (cli *Client) CreatePayOutOrder(req PayOutRequest) (*PayOutResponseData, er
 	req.Sign = sign
 
 	var resp BaseResponse
-	_, err = cli.ryClient.R().
+	httpResp, err := cli.ryClient.R().
 		SetHeaders(getHeaders()).
 		SetBody(req).
 		SetResult(&resp).
 		Post(cli.Config.PayoutUrl)
+	cli.logResty("withdraw", httpResp)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +115,11 @@ func (cli *Client) QueryPayOutOrder(req PayOutQueryRequest) (*PayOutQueryRespons
 	queryParams["sign"] = req.Sign
 
 	var resp BaseResponse
-	_, err = cli.ryClient.R().
+	httpResp, err := cli.ryClient.R().
 		SetQueryParams(queryParams).
 		SetResult(&resp).
 		Get(cli.Params.payoutQueryURL())
+	cli.logResty("withdraw#query", httpResp)
 	if err != nil {
 		return nil, err
 	}
